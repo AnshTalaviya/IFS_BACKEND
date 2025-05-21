@@ -63,42 +63,6 @@ exports.register = async (req, res) => {
   }
 };
 
-// Resend OTP to user's email
-exports.resendOTP = async (req, res) => {
-  const { email } = req.body;
-
-  if (!email) {
-    return res.status(400).json({ msg: "Email is required" });
-  }
-
-  try {
-    const user = await User.findOne({ email });
-
-    if (!user) {
-      return res.status(400).json({ msg: "Please signup first to receive OTP" });
-    }
-
-    // Generate new OTP
-    const newOtp = generateOTP();
-    const newOtpExpiry = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
-
-    // Update user document
-    user.otp = newOtp;
-    user.otpExpiry = newOtpExpiry;
-    await user.save();
-
-    // Send OTP via email
-    await sendOTPEmail(email, newOtp);
-
-    res.status(200).json({ msg: "OTP resent successfully" });
-  } catch (err) {
-    console.error("Resend OTP error:", err);
-    res.status(500).json({ msg: "Server error" });
-  }
-};
-
-
-
 // Combined Login (password or OTP)
 exports.login = async (req, res) => {
   const { email, password, otp } = req.body;
@@ -114,7 +78,7 @@ exports.login = async (req, res) => {
       const isMatch = await bcrypt.compare(password, user.password);
       if (!isMatch) return res.status(401).json({ msg: "Invalid password" });
 
-      const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "1h" });
+      const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "24h" });
       return res.json({ msg: "Login successful with password", token });
     }
 
@@ -136,5 +100,38 @@ exports.login = async (req, res) => {
     }
   } catch (err) {
     res.status(500).json({ msg: "Server error" });
+  }
+};
+
+// Resend OTP
+exports.resendOTP = async (req, res) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ msg: "Email is required" });
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ msg: "User not found" });
+
+    // Check if OTP has expired or not
+    let otp = user.otp;
+    let otpExpiry = user.otpExpiry;
+
+    if (otpExpiry < new Date()) {
+      // OTP has expired, generate a new OTP and set expiry
+      otp = generateOTP(); // New OTP generated here
+      otpExpiry = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes expiry
+    }
+
+    // Update OTP and expiry in the database
+    user.otp = otp;
+    user.otpExpiry = otpExpiry;
+    await user.save();
+
+    // Send the new OTP via email
+    await sendOTPEmail(email, otp);
+
+    res.json({ msg: "OTP resent successfully" });
+  } catch (err) {
+    res.status(500).json({ msg: "Failed to resend OTP" });
   }
 };

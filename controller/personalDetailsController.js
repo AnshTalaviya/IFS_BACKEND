@@ -1,5 +1,5 @@
 const PersonalDetails = require('../model/PersonalDetails');
-const sendFormDetailsToAdmin = require('../utils/sendFormDetailsToAdmin');
+const nodemailer = require('nodemailer');
 
 exports.savePersonalDetails = async (req, res) => {
   const {
@@ -7,13 +7,12 @@ exports.savePersonalDetails = async (req, res) => {
     address, city, state, pincode
   } = req.body;
 
-  // Manual validation
   if (!fullName || !dob || !pan || !email || !mobile) {
     return res.status(400).json({ error: "Please fill all required fields." });
   }
 
   const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
-  const mobileRegex = /^\+91\s?[0-9]{10}$/;
+  const mobileRegex =/^[0-9]{10}$/;
   const emailRegex = /^\S+@\S+\.\S+$/;
 
   if (!panRegex.test(pan)) {
@@ -29,18 +28,40 @@ exports.savePersonalDetails = async (req, res) => {
   }
 
   try {
-    // Save user details in the database
     const details = new PersonalDetails(req.body);
     await details.save();
 
-    // Log details to ensure the flow
-    // console.log('Personal details saved:', req.body);
+    // ✅ Send Email
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
 
-    // Send the form details to the admin via email
-    console.log('Sending form details to admin:', req.body);
-    await sendFormDetailsToAdmin(req.body);
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: "✅ Personal Details Submitted",
+      text: `
+🎉 Thank you for submitting your personal details!
 
-    res.status(201).json({ message: 'Personal details saved successfully', data: details });
+👤 Name: ${fullName}
+📅 Date of Birth: ${new Date(dob).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+🆔 PAN: ${pan}
+📧 Email: ${email}
+📱 Mobile: ${mobile}
+🏠 Address: ${address || '-'}
+🏙 City: ${city || '-'}
+🌆 State: ${state || '-'}
+📮 Pincode: ${pincode || '-'}
+      `
+    };
+
+    await transporter.sendMail(mailOptions);
+
+    res.status(201).json({ message: 'Personal details saved and emailed successfully', data: details });
   } catch (error) {
     res.status(500).json({ error: 'Server error', details: error.message });
   }

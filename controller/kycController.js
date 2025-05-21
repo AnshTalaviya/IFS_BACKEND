@@ -1,6 +1,4 @@
 const KYC = require("../model/kycModel");
-const nodemailer = require("nodemailer");
-const path = require("path");
 
 exports.submitKYC = async (req, res) => {
   try {
@@ -16,7 +14,7 @@ exports.submitKYC = async (req, res) => {
       return res.status(400).json({ error: "Account numbers do not match." });
     }
 
-    // length based on bank's format
+    // Length check based on bank format
     const accountNumberLength = accountNumber.length;
     if (
       (accountNumber.startsWith("SBI") && accountNumberLength !== 11) ||
@@ -48,7 +46,7 @@ exports.submitKYC = async (req, res) => {
       return res.status(400).json({ error: "Both ID and Address proof are required." });
     }
 
-    // Save to DB
+    // Create new KYC document
     const newKYC = new KYC({
       accountNumber,
       confirmAccountNumber,
@@ -59,44 +57,6 @@ exports.submitKYC = async (req, res) => {
     });
 
     await newKYC.save();
-
-    // Email to Admin with Attachments
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
-
-    const adminEmail = process.env.ADMIN_EMAIL;
-
-    const html = `
-      <h3>New KYC Submission</h3>
-      <p><strong>Account Number:</strong> ${accountNumber}</p>
-      <p><strong>IFSC Code:</strong> ${formattedIfscCode}</p>
-      <p><strong>Account Type:</strong> ${accountType}</p>
-      <p><strong>ID Proof File:</strong> ${idProof}</p>
-      <p><strong>Address Proof File:</strong> ${addressProof}</p>
-    `;
-
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to: adminEmail,
-      subject: "New KYC Form Submission",
-      html,
-      attachments: [
-        {
-          filename: idProof,
-          path: path.join(__dirname, "../uploads", idProof),
-        },
-        {
-          filename: addressProof,
-          path: path.join(__dirname, "../uploads", addressProof),
-        },
-      ],
-    });
-
     res.status(200).json({ message: "KYC Submitted Successfully!" });
 
   } catch (err) {

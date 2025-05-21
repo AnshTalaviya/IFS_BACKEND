@@ -1,12 +1,10 @@
-const mongoose = require("mongoose")
-require("dotenv").config()
+// Infiniumproject06
+//mongodb+srv://praptivirugama08:Infiniumproject06@cluster0.3vtbriy.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
+const mongoose = require("mongoose");
 
-mongoose.connect(process.env.MONGO_URI)
-
-const db = mongoose.connection;
-
-db.on('connected',()=>{
-    console.log("database is connected")
+mongoose.connect(process.env.MONGODB_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
 })
-
-module.exports = db
+.then(() => console.log("MongoDB connected"))
+.catch((err) => console.error("MongoDB connection error:", err));
