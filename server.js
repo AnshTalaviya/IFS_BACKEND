@@ -33,7 +33,7 @@ mongoose.connect(process.env.MONGO_URI, {
 .catch((err) => console.error("MongoDB connection error:", err));
 
 // Use routes
-app.use("/api/auth", authRoutes);
+app.use("/api", authRoutes);
 app.use("/api/personal_details", personalDetailsRouter);
 app.use("/api", sendDetailsRoute);
 app.use("/api/investment_preferences", investmentPreferencesRouter);
