@@ -16,7 +16,7 @@ const sendDetailsRoute = require("./router/sendDetailsRouter");
 
 const app = express();
 
-app.use(cors());
+app.use(cors("*"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -33,7 +33,7 @@ mongoose.connect(process.env.MONGO_URI, {
 .catch((err) => console.error("MongoDB connection error:", err));
 
 // Use routes
-app.use("/api", authRoutes);
+app.use("/api", authRoutes);    
 app.use("/api/personal_details", personalDetailsRouter);
 app.use("/api", sendDetailsRoute);
 app.use("/api/investment_preferences", investmentPreferencesRouter);
