@@ -7,8 +7,8 @@ const investmentPreferencesSchema = new mongoose.Schema({
     required: true
   },
   investmentAmount: {
-    type: Number,
-    required: true,
+    type: String,
+    required: false,
     min: 10000
   },
   investmentTenure: {
